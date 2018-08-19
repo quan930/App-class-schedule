@@ -6,34 +6,63 @@ import android.support.v4.widget.AutoSizeableTextView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+//2017033201
+//        17开发G1
 public class MainActivity extends AppCompatActivity {
     private String cookie;
     private ImageView imageView;
     private List<String> classIds;
     private List<String> classNames;
     private AutoCompleteTextView autoCompleteTextView;
+    private ImageView studentClassImageView;
+    private Button button;
+    private EditText editText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         imageView = findViewById(R.id.imageView);
         autoCompleteTextView = findViewById(R.id.auto);
+        studentClassImageView = findViewById(R.id.studentClass);
+        button = findViewById(R.id.button);
+        editText = findViewById(R.id.editText);
         init();
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getImg();
+            }
+        });
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getStudentClass();
+            }
+        });
     }
     private void init () {
         new Thread(new Runnable() {
@@ -47,8 +76,8 @@ public class MainActivity extends AppCompatActivity {
                     //        Log.d("asd", headerField.toString());
                     cookie = headerField.split(";")[0];
                     Log.d("无敌", cookie);
-                    getImg();
                     getList();
+                    getImg();
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
@@ -65,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     URL url = new URL("http://59.79.112.9/sys/ValidateCode.aspx");
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.addRequestProperty("Referer", "http://59.79.112.9/sys/ValidateCode.aspx");//http://59.79.112.9/ZNPK/TeacherKBFB.aspx
+                    connection.addRequestProperty("Referer", "http://59.79.112.9/ZNPK/KBFB_ClassSel.aspx");
                     connection.addRequestProperty("Cookie",cookie);
 
                     InputStream is = connection.getInputStream();
@@ -94,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             u2 = new URL("http://59.79.112.9/ZNPK/KBFB_ClassSel.aspx");
             HttpURLConnection con2 = (HttpURLConnection) u2.openConnection();
             con2.setRequestProperty("Cookie", cookie);
-//		con2.setRequestProperty("Referer", "http://59.79.112.9/ZNPK/TeacherKBFB.aspx");
+		    con2.setRequestProperty("Referer", "http://59.79.112.9/ZNPK/TeacherKBFB.aspx");
 
             con2.connect();
 
@@ -118,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             while(p1!=-1) {
                 //假定id的长度为固定10位字符
                 if(s.substring(p1+14,p1+15).equals("'")) {
-                    System.out.println("错误");
+//                    System.out.println("错误");
                     p2 = s.indexOf("</option>", p1);
                     p1 = s.indexOf("<option value=", p2);
                     continue;
@@ -127,8 +156,8 @@ public class MainActivity extends AppCompatActivity {
                 p2 = s.indexOf("</option>", p1);
                 String name = s.substring(p1+25,p2);
                 p1 = s.indexOf("<option value=", p2);
-                System.out.println(id);
-                System.out.println(name);
+//                System.out.println(id);
+//                System.out.println(name);
 
                 classIds.add(id);
                 classNames.add(name);
@@ -155,5 +184,113 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
+    }
+    //学生课表
+    private void getStudentClass(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                URL url = null;
+                try {////http://59.79.112.9/ZNPK/KBFB_ClassSel_rpt.aspx
+                    url = new URL("http://59.79.112.9/ZNPK/KBFB_ClassSel_rpt.aspx");
+                    HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+                    conn.setDoOutput(true);
+                    conn.setRequestMethod("POST");//http://59.79.112.9/ZNPK/KBFB_ClassSel.aspx
+                    conn.setRequestProperty("Referer", "http://59.79.112.9/ZNPK/KBFB_ClassSel.aspx");
+                    conn.setRequestProperty("Cookie",cookie);
+
+//                    conn.connect();
+
+
+//                    Sel_XNXQ	20171
+//                    Sel_XZBJ	2017033201
+//                    txt_yzm	gz55
+//                    txtxzbj
+//                    type	1
+                    String id = "2017033201";
+                    String authCode = editText.getText().toString();
+                    String postString = "Sel_XNXQ=20171&Sel_XZBJ="+id+"&type=1&txt_yzm=" + authCode;
+                    Log.d("报文", postString);
+                    conn.getOutputStream().write(postString.getBytes());
+                    InputStream is = conn.getInputStream();
+                    BufferedReader bf = new BufferedReader(new InputStreamReader(is, "GB2312"));
+                    String line = null;
+                    StringBuilder stringBuilder = new StringBuilder();
+                    //响应数据
+                    while ((line = bf.readLine()) != null) {
+                        stringBuilder.append(line);
+                        Log.d("阿斯顿", line);
+                    }
+
+//                    String id = s.substring(p1+14,p1+24);
+//                    p2 = s.indexOf("</option>", p1);
+//                    String name = s.substring(p1+25,p2);
+//                    p1 = s.indexOf("<option value=", p2);
+
+                    String responseMessage = stringBuilder.toString();
+                    if(responseMessage.contains("验证码错误")){
+                        Log.d("判断验证码", "验证码错误");
+                    }else{
+                        Element img = Jsoup.parse(responseMessage).select("img").get(0);
+                        String src = img.attr("src");
+                        getClassImg(src);
+
+                    }
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (ProtocolException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+    //post发数据接收数据，验证码正确返回true
+    private String postMessage(HttpURLConnection connection,String postString){
+        String message = "错误";
+        try {
+            //post
+            OutputStream os = connection.getOutputStream();
+            os.write(postString.getBytes());
+            //接收
+            InputStream is = connection.getInputStream();
+            BufferedReader bf = new BufferedReader(new InputStreamReader(is, "GB2312"));
+            String line = null;
+            StringBuilder stringBuilder = new StringBuilder();
+            //响应数据
+            while ((line = bf.readLine()) != null) {
+                stringBuilder.append(line);
+                Log.d("阿斯顿", line);
+            }
+            message=stringBuilder.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return message;
+    }
+    private void getClassImg(String src) {
+        try {
+            URL url = new URL("http://59.79.112.9/ZNPK/"+src);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
+            connection.addRequestProperty("Referer", "http://59.79.112.9/ZNPK/KBFB_ClassSel_rpt.aspx");
+            connection.addRequestProperty("Cookie",cookie);
+
+            InputStream is = connection.getInputStream();
+            final Bitmap bitmap = BitmapFactory.decodeStream(is);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    studentClassImageView.setVisibility(View.VISIBLE);
+                    studentClassImageView.setImageBitmap(bitmap);
+                }
+            });
+            connection.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
